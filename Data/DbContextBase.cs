@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using TestModelBuilder.Domain;
 
 namespace TestModelBuilder.Data;
@@ -12,6 +13,7 @@ public class DbContextBase : DbContext//<T> : DbContext where T : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlite("Data Source=sample.db");
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, MyModelCacheFactory>();
 
         base.OnConfiguring(optionsBuilder);
     }
@@ -74,13 +76,18 @@ public class FormTypeBuilder
 {
     private static ConcurrentDictionary<FormKey, Type> FormTypes = new()
     {
-        [new FormKey("company", "test1")] = typeof(Company),
-        [new FormKey("work", "test2")] = typeof(Work)
+        //[new FormKey("company", "test1")] = typeof(Company),
+        //[new FormKey("work", "test2")] = typeof(Work)
     };
 
     public static Dictionary<string, Type> GetAppTypes(string appId)
     {
         return FormTypes.Where(x => x.Key.AppId == appId)
             .ToDictionary(x => x.Key.Name, x => x.Value);
+    }
+
+    public static void AddDynamicEntity(string appid, string table, Type entity)
+    {
+        FormTypes.TryAdd(new FormKey(table, appid), entity);
     }
 }

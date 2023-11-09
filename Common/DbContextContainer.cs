@@ -7,7 +7,7 @@ using TestModelBuilder.Data;
 
 namespace TestModelBuilder.Common;
 
-public class DbContextContainer:IDisposable
+public class DbContextContainer : IDisposable
 {
     private readonly DbContextGenerator _generator;
     private readonly Dictionary<string, DbContext> _contexts = new();
@@ -42,6 +42,15 @@ public static class DbContextContainerExtensions
             .Invoke(context, null)!;
 
         return (dbSet as IQueryable);
+    }
+
+    public static void UpdateVersion(this DbContext context)
+    {
+        MyModelCacheFactory.UpdateVersion(context);
+    }
+
+    public static void AddDynamicTable(this DbContext context)
+    {
     }
 }
 

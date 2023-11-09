@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,6 +17,7 @@ public class SampleDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<Work> Works { get; set; }
+
     // public DbSet<Company> Companies { get; set; }
     public SampleDbContext(DbContextOptions<SampleDbContext> options, ModeBuilderService modeBuilderService) : base(options)
     {
@@ -43,27 +45,33 @@ public class SampleDbContext : DbContext
 
     public void RemoveEntity(Type type)
     {
-
     }
 }
 
 public class MyModelCacheFactory : IModelCacheKeyFactory
 {
+    private static ConcurrentDictionary<string, string> _version = new();
+
     public object Create(DbContext context, bool designTime)
     {
-        return GetVersion();
+        return $"{context.GetType().Name}_{GetVersion(context)}";
     }
 
-    private static Guid Seed = Guid.NewGuid();
-
-    public static void UpdateVersion()
+    public static void UpdateVersion(DbContext context)
     {
-        Seed = Guid.NewGuid();
+        var version = $"{context.GetType().Name}_{Guid.NewGuid()}";
+        _version[context.GetType().Name] = version;
     }
 
-    public static Guid GetVersion()
+    public static string GetVersion(DbContext context)
     {
-        return Seed;
+        if (!_version.TryGetValue(context.GetType().Name, out var version))
+        {
+            version = $"{context.GetType().Name}_{Guid.NewGuid()}";
+            _version[context.GetType().Name] = version;
+        }
+
+        return version;
     }
 }
 
@@ -76,13 +84,12 @@ public class ModeBuilderService
 
     public ModeBuilderService()
     {
-
     }
 
     public void AddDynamicType()
     {
         AddOrUpdate("Companies", typeof(Company));
-        MyModelCacheFactory.UpdateVersion();
+        //MyModelCacheFactory.UpdateVersion();
     }
 
     public void AddOrUpdate(string key, Type value)
